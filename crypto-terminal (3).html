@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ORBIT TERMINAL — Crypto Trading Sim</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root{
+  --bg:#080b0c;
+  --panel:#11171a;
+  --panel-alt:#161f23;
+  --border:#233034;
+  --text:#e7ecec;
+  --dim:#7c8a8f;
+  --green:#00ffa3;
+  --red:#ff5470;
+  --amber:#ffb703;
+  --cyan:#5eead4;
+  --mono:'JetBrains Mono', monospace;
+  --display:'Space Grotesk', sans-serif;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--mono); min-height:100vh;
+}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+
+/* ---------- TICKER ---------- */
+.ticker-wrap{
+  background:#000; border-bottom:1px solid var(--border);
+  overflow:hidden; white-space:nowrap; height:34px; display:flex; align-items:center;
+}
+.ticker-track{display:inline-flex; animation:scroll 30s linear infinite;}
+.ticker-wrap:hover .ticker-track{animation-play-state:paused;}
+@keyframes scroll{ from{transform:translateX(0);} to{transform:translateX(-50%);} }
+.ticker-item{padding:0 22px; font-size:12px; display:inline-flex; gap:6px; align-items:center; color:var(--dim);}
+.ticker-item b{color:var(--text);}
+.tick-up{color:var(--green);} .tick-down{color:var(--red);}
+
+/* ---------- HEADER ---------- */
+header{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:16px 22px; border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,#0d1214,#0a0e10);
+  flex-wrap:wrap; gap:12px;
+}
+.brand{display:flex; align-items:center; gap:10px;}
+.brand-mark{
+  width:34px;height:34px;border-radius:8px;
+  background:conic-gradient(from 180deg, var(--green), var(--cyan), var(--green));
+  box-shadow:0 0 20px -4px var(--green);
+}
+.brand h1{font-family:var(--display); font-size:18px; margin:0; letter-spacing:0.5px;}
+.brand span{font-size:11px; color:var(--dim); display:block;}
+.stats-row{display:flex; gap:24px; flex-wrap:wrap;}
+.stat{text-align:right;}
+.stat label{display:block; font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:1px;}
+.stat .val{font-family:var(--display); font-size:20px; font-weight:700;}
+.controls{display:flex; gap:8px; align-items:center;}
+button{
+  font-family:var(--mono); cursor:pointer; border-radius:6px; border:1px solid var(--border);
+  background:var(--panel-alt); color:var(--text); padding:8px 12px; font-size:12px;
+  transition:all .15s;
+}
+button:hover{border-color:var(--cyan); color:var(--cyan);}
+button.primary{background:var(--green); color:#04140d; border-color:var(--green); font-weight:700;}
+button.primary:hover{filter:brightness(1.1); color:#04140d;}
+button.danger-btn{background:var(--red); color:#1a0509; border-color:var(--red); font-weight:700;}
+button:disabled{opacity:0.35; cursor:not-allowed;}
+
+/* ---------- LAYOUT ---------- */
+.layout{
+  display:grid; grid-template-columns: 300px 1fr 320px; gap:14px;
+  padding:16px; align-items:start;
+}
+@media(max-width:1000px){ .layout{grid-template-columns:1fr;} }
+
+.panel{
+  background:var(--panel); border:1px solid var(--border); border-radius:10px;
+  overflow:hidden;
+}
+.panel-head{
+  padding:12px 14px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;
+  font-family:var(--display); font-size:13px; font-weight:700; letter-spacing:0.3px; text-transform:uppercase;
+  color:var(--cyan); background:var(--panel-alt);
+}
+.panel-body{padding:12px 14px;}
+.scroll-md{max-height:260px; overflow-y:auto;}
+.scroll-lg{max-height:440px; overflow-y:auto;}
+
+/* ---------- PORTFOLIO ---------- */
+.holding-row{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:9px 0; border-bottom:1px solid var(--border); font-size:12px;
+}
+.holding-row:last-child{border-bottom:none;}
+.holding-left b{display:block; font-size:13px;}
+.holding-left span{color:var(--dim); font-size:11px;}
+.holding-right{text-align:right;}
+.alloc-bar{height:5px; border-radius:3px; background:var(--border); overflow:hidden; margin-top:4px;}
+.alloc-fill{height:100%; background:var(--cyan);}
+.empty-note{color:var(--dim); font-size:12px; padding:8px 0; text-align:center;}
+
+/* ---------- MARKET ---------- */
+.coin-card{
+  display:grid; grid-template-columns: 40px 1fr 90px 110px 130px; align-items:center; gap:10px;
+  padding:12px 10px; border-bottom:1px solid var(--border); transition:background .3s;
+}
+.coin-card:last-child{border-bottom:none;}
+.coin-card.flash-up{background:rgba(0,255,163,0.08);}
+.coin-card.flash-down{background:rgba(255,84,112,0.08);}
+.coin-icon{
+  width:36px;height:36px;border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-family:var(--display); font-weight:700; font-size:12px; color:#04140d;
+}
+.coin-name b{font-size:13px; display:block;}
+.coin-name span{font-size:10px; color:var(--dim);}
+.coin-price{font-size:13px; text-align:right;}
+.coin-change{font-size:12px; text-align:right; font-weight:700;}
+.coin-actions{display:flex; gap:5px; justify-content:flex-end;}
+.coin-actions input{
+  width:52px; background:var(--panel-alt); border:1px solid var(--border); color:var(--text);
+  border-radius:5px; padding:6px 4px; font-family:var(--mono); font-size:11px; text-align:center;
+}
+.buy-btn{background:var(--green); color:#04140d; border-color:var(--green);}
+.sell-btn{background:var(--red); color:#1a0509; border-color:var(--red);}
+.buy-btn,.sell-btn{padding:6px 8px; font-size:11px; font-weight:700;}
+
+/* ---------- NEWS ---------- */
+.news-item{padding:9px 0; border-bottom:1px solid var(--border); font-size:12px;}
+.news-item:last-child{border-bottom:none;}
+.news-time{color:var(--dim); font-size:10px;}
+.news-tag{
+  display:inline-block; font-size:9px; padding:1px 6px; border-radius:3px; margin-right:6px;
+  text-transform:uppercase; font-weight:700;
+}
+.tag-pump{background:rgba(0,255,163,0.15); color:var(--green);}
+.tag-dump{background:rgba(255,84,112,0.15); color:var(--red);}
+.tag-market{background:rgba(255,183,3,0.15); color:var(--amber);}
+
+/* ---------- ACHIEVEMENTS ---------- */
+.ach-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+.ach{
+  border:1px solid var(--border); border-radius:8px; padding:8px; font-size:10px; text-align:center;
+  opacity:0.35; background:var(--panel-alt);
+}
+.ach.unlocked{opacity:1; border-color:var(--cyan);}
+.ach .ico{font-size:18px; display:block; margin-bottom:4px;}
+.ach b{display:block; font-size:10px; margin-bottom:2px;}
+
+/* ---------- HISTORY ---------- */
+.tx-row{display:flex; justify-content:space-between; font-size:11px; padding:7px 0; border-bottom:1px solid var(--border);}
+.tx-row:last-child{border-bottom:none;}
+.tx-buy{color:var(--green);} .tx-sell{color:var(--red);}
+
+/* ---------- CHART ---------- */
+canvas{display:block; width:100%;}
+.clickable-card{cursor:pointer;}
+.clickable-card:hover{background:var(--panel-alt);}
+
+/* ---------- POSITIONS ---------- */
+.position-row{
+  padding:9px 0; border-bottom:1px solid var(--border); font-size:11px;
+}
+.position-row:last-child{border-bottom:none;}
+.pos-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;}
+.side-tag{
+  font-size:9px; font-weight:700; padding:2px 6px; border-radius:3px; text-transform:uppercase; margin-right:5px;
+}
+.side-long{background:rgba(0,255,163,0.15); color:var(--green);}
+.side-short{background:rgba(255,84,112,0.15); color:var(--red);}
+.pos-close-btn{padding:3px 8px; font-size:10px;}
+.liq-warn{color:var(--amber); font-size:10px;}
+
+/* ---------- MODAL ---------- */
+.modal-overlay{
+  display:none; position:fixed; inset:0; background:rgba(3,5,6,0.85); z-index:1000;
+  backdrop-filter:blur(3px); overflow-y:auto; padding:20px;
+}
+.modal-overlay.open{display:block;}
+.modal-panel{
+  max-width:920px; margin:0 auto; background:var(--panel); border:1px solid var(--border);
+  border-radius:12px; overflow:hidden;
+}
+.modal-head{
+  display:flex; justify-content:space-between; align-items:center; padding:16px 20px;
+  border-bottom:1px solid var(--border); background:var(--panel-alt);
+}
+.modal-head-left{display:flex; align-items:center; gap:12px;}
+.modal-coin-icon{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center; font-family:var(--display); font-weight:700; color:#04140d;}
+.modal-price{font-family:var(--display); font-size:22px; font-weight:700;}
+.modal-close{font-size:16px; padding:6px 12px;}
+.modal-body{padding:18px 20px;}
+.chart-wrap{background:#04070a; border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:16px;}
+.trade-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;}
+@media(max-width:700px){ .trade-grid{grid-template-columns:1fr;} }
+.trade-box{border:1px solid var(--border); border-radius:8px; padding:14px; background:var(--panel-alt);}
+.trade-box h3{margin:0 0 10px 0; font-family:var(--display); font-size:13px; text-transform:uppercase; letter-spacing:0.3px; color:var(--cyan);}
+.trade-box label{display:block; font-size:10px; color:var(--dim); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;}
+.trade-box input{
+  width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text);
+  border-radius:6px; padding:9px 10px; font-family:var(--mono); font-size:13px; margin-bottom:10px;
+}
+.lev-row{display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap;}
+.lev-btn{flex:1; padding:7px 4px; font-size:11px; min-width:38px;}
+.lev-btn.active{background:var(--cyan); color:#04140d; border-color:var(--cyan); font-weight:700;}
+.trade-box .btn-row{display:flex; gap:8px;}
+.trade-box .btn-row button{flex:1; padding:11px; font-size:12px;}
+.long-btn{background:var(--green); color:#04140d; border-color:var(--green); font-weight:700;}
+.short-btn{background:var(--red); color:#1a0509; border-color:var(--red); font-weight:700;}
+.est-line{font-size:10px; color:var(--dim); margin-top:2px; margin-bottom:8px;}
+.modal-positions-head{font-family:var(--display); font-size:12px; text-transform:uppercase; color:var(--cyan); margin-bottom:8px; letter-spacing:0.3px;}
+
+/* ---------- PRO CHART ---------- */
+.chart-legend{display:flex; justify-content:space-between; align-items:center; font-size:11px; margin-bottom:8px; font-family:var(--mono);}
+.chart-stack{position:relative; width:100%; height:360px;}
+.chart-stack canvas{position:absolute; top:0; left:0; width:100%; height:100%;}
+#modalChartOverlay{cursor:crosshair;}
+.otype-row{display:flex; gap:6px; margin-bottom:10px;}
+.otype-btn{flex:1; padding:6px 4px; font-size:11px;}
+.otype-btn.active{background:var(--cyan); color:#04140d; border-color:var(--cyan); font-weight:700;}
+.order-row{padding:9px 0; border-bottom:1px solid var(--border); font-size:11px;}
+.order-row:last-child{border-bottom:none;}
+.order-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;}
+.order-cancel-btn{padding:3px 8px; font-size:10px;}
+
+/* ---------- TOASTS ---------- */
+#toast-wrap{position:fixed; top:70px; right:16px; z-index:999; display:flex; flex-direction:column; gap:8px; max-width:280px;}
+.toast{
+  background:var(--panel); border:1px solid var(--cyan); border-radius:8px; padding:10px 12px;
+  font-size:12px; animation:slidein .3s ease, fadeout .5s ease 3.5s forwards; box-shadow:0 4px 20px rgba(0,0,0,0.4);
+}
+.toast b{color:var(--cyan); display:block; font-size:11px; margin-bottom:2px; font-family:var(--display);}
+@keyframes slidein{from{transform:translateX(40px); opacity:0;} to{transform:translateX(0); opacity:1;}}
+@keyframes fadeout{to{opacity:0; transform:translateX(20px);}}
+
+.tag-pos{color:var(--green);} .tag-neg{color:var(--red);}
+.footer-note{padding:10px 22px; color:var(--dim); font-size:11px; text-align:center;}
+.paused-banner{
+  text-align:center; padding:4px; font-size:11px; background:var(--amber); color:#1a1200; font-weight:700; display:none;
+}
+</style>
+</head>
+<body>
+
+<div class="paused-banner" id="pausedBanner">⏸ MARKET PAUSED</div>
+
+<div class="ticker-wrap"><div class="ticker-track" id="tickerTrack"></div></div>
+
+<header>
+  <div class="brand">
+    <div class="brand-mark"></div>
+    <div>
+      <h1>ORBIT TERMINAL</h1>
+      <span>Simulated crypto exchange · not real money</span>
+    </div>
+  </div>
+  <div class="stats-row">
+    <div class="stat"><label>Net Worth</label><div class="val" id="netWorthVal">$0.00</div></div>
+    <div class="stat"><label>Cash</label><div class="val" id="cashVal" style="color:var(--cyan)">$0.00</div></div>
+    <div class="stat"><label>Day</label><div class="val" id="dayVal">1</div></div>
+    <div class="stat"><label>All-Time High</label><div class="val" id="athVal" style="font-size:14px; color:var(--amber)">$0.00</div></div>
+  </div>
+  <div class="controls">
+    <button id="speedBtn" title="Cycle simulation speed">1x SPEED</button>
+    <button id="pauseBtn">⏸ PAUSE</button>
+    <button id="resetBtn" class="danger-btn">RESET</button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT: PORTFOLIO -->
+  <div style="display:flex; flex-direction:column; gap:14px;">
+    <div class="panel">
+      <div class="panel-head">Portfolio</div>
+      <div class="panel-body scroll-md" id="portfolioBody"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">Open Positions <span id="posCount" style="color:var(--dim); font-weight:400;"></span></div>
+      <div class="panel-body scroll-md" id="positionsBody"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">Open Orders <span id="orderCount" style="color:var(--dim); font-weight:400;"></span></div>
+      <div class="panel-body scroll-md" id="ordersBody"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">Net Worth History</div>
+      <div class="panel-body"><canvas id="netWorthChart" height="140"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">Achievements <span id="achCount" style="color:var(--dim); font-weight:400;"></span></div>
+      <div class="panel-body scroll-md"><div class="ach-grid" id="achGrid"></div></div>
+    </div>
+  </div>
+
+  <!-- CENTER: MARKET -->
+  <div class="panel">
+    <div class="panel-head">Market <span id="marketSub" style="color:var(--dim); font-weight:400;"></span></div>
+    <div class="panel-body" id="marketBody" style="padding:0;"></div>
+  </div>
+
+  <!-- RIGHT: NEWS + HISTORY -->
+  <div style="display:flex; flex-direction:column; gap:14px;">
+    <div class="panel">
+      <div class="panel-head">Market Wire</div>
+      <div class="panel-body scroll-md" id="newsBody"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">Trade History</div>
+      <div class="panel-body scroll-lg" id="txBody"></div>
+    </div>
+  </div>
+
+</div>
+<div class="footer-note">Prices, news, and outcomes are procedurally generated for entertainment/practice. Progress saves automatically.</div>
+<div id="toast-wrap"></div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-panel">
+    <div class="modal-head">
+      <div class="modal-head-left">
+        <div class="modal-coin-icon" id="modalIcon"></div>
+        <div>
+          <div style="font-family:var(--display); font-weight:700; font-size:15px;" id="modalName"></div>
+          <span style="font-size:11px; color:var(--dim);" id="modalSym"></span>
+        </div>
+        <div>
+          <div class="modal-price" id="modalPrice"></div>
+          <div id="modalChange" style="font-size:12px; font-weight:700;"></div>
+        </div>
+      </div>
+      <button class="modal-close" id="modalCloseBtn">✕ CLOSE</button>
+    </div>
+    <div class="modal-body">
+      <div class="chart-wrap">
+        <div class="chart-legend">
+          <span id="chartLegendLeft">—</span>
+          <span id="chartLegendRight" style="color:var(--dim);">simulated · 1 candle / tick</span>
+        </div>
+        <div class="chart-stack">
+          <canvas id="modalChart"></canvas>
+          <canvas id="modalChartOverlay"></canvas>
+        </div>
+      </div>
+
+      <div class="trade-grid">
+        <div class="trade-box">
+          <h3>Spot Trade</h3>
+          <div class="otype-row" id="spotOrderTypeRow">
+            <button class="otype-btn active" data-otype="market">MARKET</button>
+            <button class="otype-btn" data-otype="limit">LIMIT</button>
+          </div>
+          <label id="modalSpotLabel">Quantity</label>
+          <input type="number" min="0" step="any" id="modalSpotQty" placeholder="0.00">
+          <div id="limitPriceWrap" style="display:none;">
+            <div class="otype-row" id="spotTriggerModeRow">
+              <button class="otype-btn active" data-tmode="price">PRICE</button>
+              <button class="otype-btn" data-tmode="percent">GAIN %</button>
+            </div>
+            <div id="spotPriceField">
+              <label>Limit Price (USD)</label>
+              <input type="number" min="0" step="any" id="modalLimitPrice" placeholder="0.00">
+            </div>
+            <div id="spotPercentField" style="display:none;">
+              <label>Gain % (+ = profit target, − = stop loss)</label>
+              <input type="number" step="any" id="modalLimitPct" placeholder="e.g. 100">
+              <div class="est-line" id="spotPercentPreview"></div>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="buy-btn" id="modalBuyBtn">BUY</button>
+            <button class="sell-btn" id="modalSellBtn">SELL</button>
+          </div>
+        </div>
+        <div class="trade-box">
+          <h3>Leverage — Long / Short</h3>
+          <div class="otype-row" id="levOrderTypeRow">
+            <button class="otype-btn active" data-lotype="market">MARKET</button>
+            <button class="otype-btn" data-lotype="limit">LIMIT</button>
+          </div>
+          <label>Margin (USD)</label>
+          <input type="number" min="0" step="any" id="modalMargin" placeholder="0.00">
+          <label>Leverage</label>
+          <div class="lev-row" id="levRow"></div>
+          <div id="levTriggerWrap" style="display:none;">
+            <div class="otype-row" id="levTriggerModeRow">
+              <button class="otype-btn active" data-ltmode="price">TRIGGER PRICE</button>
+              <button class="otype-btn" data-ltmode="percent">% FROM CURRENT</button>
+            </div>
+            <div id="levPriceField">
+              <label>Trigger Price (USD)</label>
+              <input type="number" min="0" step="any" id="modalLevTriggerPrice" placeholder="0.00">
+            </div>
+            <div id="levPercentField" style="display:none;">
+              <label>% From Current Price</label>
+              <input type="number" step="any" id="modalLevTriggerPct" placeholder="e.g. 10">
+            </div>
+          </div>
+          <div class="est-line" id="estLine"></div>
+          <div class="btn-row">
+            <button class="long-btn" id="modalLongBtn">▲ LONG</button>
+            <button class="short-btn" id="modalShortBtn">▼ SHORT</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-positions-head">Positions on this asset</div>
+      <div id="modalPositionsBody"></div>
+      <div class="modal-positions-head" style="margin-top:14px;">Pending orders on this asset</div>
+      <div id="modalOrdersBody"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ================= CONFIG ================= */
+const COIN_DEFS = [
+  {id:'orbt', name:'Orbit',      sym:'ORBT', price:42000, vol:0.012, drift:0.0004, color:'#f7931a'},
+  {id:'lume', name:'Lumen',      sym:'LUME', price:2800,  vol:0.016, drift:0.0003, color:'#5eead4'},
+  {id:'nova', name:'Nova',       sym:'NOVA', price:340,   vol:0.020, drift:0.0002, color:'#a78bfa'},
+  {id:'echo', name:'Echo Chain', sym:'ECHO', price:18,    vol:0.026, drift:0.0001, color:'#38bdf8'},
+  {id:'rune', name:'Runeforge',  sym:'RUNE', price:6.40,  vol:0.030, drift:0.0000, color:'#fb7185'},
+  {id:'pxl',  name:'Pixelmeme',  sym:'PXL',  price:0.0042,vol:0.065, drift:-0.0004, color:'#facc15'},
+  {id:'woof', name:'Woofcoin',   sym:'WOOF', price:0.089, vol:0.055, drift:-0.0002, color:'#fb923c'},
+  {id:'stbl', name:'Stablecore', sym:'STBL', price:1.00,  vol:0.001, drift:0.0000, color:'#a3a3a3'},
+];
+const STARTING_CASH = 10000;
+const TICK_MS = 2200;
+const SPEEDS = [1,2,4];
+const LEVERAGE_OPTIONS = [2,5,10,20,50];
+const STORAGE_KEY = 'orbit-terminal-save-v1';
+const NEWS_EVENTS = [
+  {tag:'pump', text:c=>`${c} whale wallet accumulates a massive position`, mode:'single', min:0.06, max:0.18},
+  {tag:'pump', text:c=>`${c} announces mainnet upgrade, devs celebrate`, mode:'single', min:0.04, max:0.12},
+  {tag:'pump', text:()=>`Regulatory clarity boosts investor confidence market-wide`, mode:'all', min:0.02, max:0.06},
+  {tag:'dump', text:c=>`${c} exchange suffers brief outage, traders spooked`, mode:'single', min:-0.15,max:-0.05},
+  {tag:'dump', text:c=>`Rumors swirl of ${c} insider sell-off`, mode:'single', min:-0.20,max:-0.08},
+  {tag:'dump', text:()=>`Macro jitters trigger broad crypto sell-off`, mode:'all', min:-0.09,max:-0.02},
+  {tag:'market', text:()=>`Analysts note unusually quiet trading session`, mode:'all', min:-0.01,max:0.01},
+  {tag:'pump', text:c=>`Influencer tweets bullish thread on ${c}`, mode:'meme', min:0.10, max:0.35},
+  {tag:'dump', text:c=>`${c} meme momentum fades as hype cools`, mode:'meme', min:-0.30,max:-0.10},
+  {tag:'market', text:()=>`Stablecore peg holds steady amid volatility`, mode:'none', min:0,max:0},
+];
+const ACHIEVEMENTS = [
+  {id:'first_trade', ico:'🎯', name:'First Blood', desc:'Make your first trade'},
+  {id:'diversified',  ico:'🧩', name:'Diversified', desc:'Hold 4+ coins at once'},
+  {id:'big_spender',  ico:'💸', name:'Big Spender', desc:'Single trade over $5,000'},
+  {id:'twenty_k',     ico:'📈', name:'Twenty K',    desc:'Net worth hits $20,000'},
+  {id:'fifty_k',      ico:'🚀', name:'Fifty K',     desc:'Net worth hits $50,000'},
+  {id:'hundred_k',    ico:'👑', name:'Six Figures',  desc:'Net worth hits $100,000'},
+  {id:'day_trader',   ico:'⚡', name:'Day Trader',  desc:'10 trades in one day'},
+  {id:'survivor',     ico:'🩹', name:'Survivor',    desc:'Recover after net worth < $2,000'},
+  {id:'market_maker', ico:'🏛️', name:'Market Maker',desc:'Complete 50 total trades'},
+  {id:'profit_take',  ico:'💰', name:'Profit Taker',desc:'Sell a position for a profit'},
+  {id:'first_long',   ico:'▲', name:'Going Long',  desc:'Open your first long position'},
+  {id:'first_short',  ico:'▼', name:'Going Short',  desc:'Open your first short position'},
+  {id:'leverage_master', ico:'🎰', name:'High Roller', desc:'Open a position at 20x leverage or more'},
+  {id:'liquidated',   ico:'💥', name:'Rekt',        desc:'Get liquidated on a leveraged position'},
+  {id:'limit_order',  ico:'📋', name:'Order Placed', desc:'Place your first limit order'},
+  {id:'sniper',        ico:'🎯', name:'Sniper Entry', desc:'Get a limit order filled'},
+];
+
+/* ================= STATE ================= */
+let state = null;
+let tickTimer = null;
+let paused = false;
+let speedIdx = 0;
+let saveTimeout = null;
+let modalCoinId = null;
+let modalLeverage = 5;
+let modalOrderType = 'market';
+let modalSpotTriggerMode = 'price';
+let modalLevOrderType = 'market';
+let modalLevTriggerMode = 'price';
+let chartMetrics = null;
+
+function freshState(){
+  return {
+    cash: STARTING_CASH,
+    holdings: {}, // id -> {qty, avgCost}
+    positions: [], // {id, coinId, side, margin, leverage, entryPrice, openLabel}
+    limitOrders: [], // {id, coinId, side:'buy'|'sell', qty, limitPrice}
+    coins: COIN_DEFS.map(c => ({...c, price:c.price, candles:[{o:c.price,h:c.price,l:c.price,c:c.price,vol:0.001}]})),
+    tx: [],
+    news: [],
+    day: 1,
+    ticksToday: 0,
+    tradesToday: 0,
+    totalTrades: 0,
+    totalPositions: 0,
+    netWorthHistory: [STARTING_CASH],
+    maxNetWorth: STARTING_CASH,
+    wasUnderBroke: false,
+    achievements: {},
+  };
+}
+function coinHistory(c){ return c.candles.map(cd=>cd.c); }
+
+/* ================= UTIL ================= */
+function fmt(n, decimals){
+  if(n===undefined||n===null||isNaN(n)) return '$0.00';
+  const abs = Math.abs(n);
+  let d = decimals !== undefined ? decimals : (abs < 1 ? 4 : abs < 100 ? 2 : 2);
+  return '$' + n.toLocaleString(undefined,{minimumFractionDigits:d, maximumFractionDigits:d});
+}
+function fmtPct(n){
+  const s = (n*100).toFixed(2);
+  return (n>=0?'+':'') + s + '%';
+}
+function gaussian(){
+  let u=0,v=0;
+  while(u===0)u=Math.random();
+  while(v===0)v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+function nowLabel(){
+  return `D${state.day} · T${state.ticksToday}`;
+}
+function coinById(id){ return state.coins.find(c=>c.id===id); }
+
+/* ================= SAVE / LOAD ================= */
+const hasCloudStorage = (typeof window!=='undefined') && !!window.storage && typeof window.storage.get==='function';
+async function saveState(){
+  if(hasCloudStorage){
+    try{ await window.storage.set(STORAGE_KEY, JSON.stringify(state), false); return; }
+    catch(e){ console.error('cloud save failed, falling back to localStorage', e); }
+  }
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch(e){ console.error('local save failed', e); }
+}
+function queueSave(){
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(saveState, 600);
+}
+async function loadState(){
+  if(hasCloudStorage){
+    try{
+      const res = await window.storage.get(STORAGE_KEY, false);
+      if(res && res.value){
+        const parsed = JSON.parse(res.value);
+        if(parsed && parsed.coins && parsed.coins.length) return parsed;
+      }
+    }catch(e){ /* no cloud save yet */ }
+    return null;
+  }
+  // Standalone file mode (opened directly in a browser, not inside Claude.ai) — use localStorage
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(parsed && parsed.coins && parsed.coins.length) return parsed;
+    }
+  }catch(e){ /* localStorage unavailable */ }
+  return null;
+}
+
+/* ================= MARKET LOGIC ================= */
+function tick(){
+  state.ticksToday++;
+  // random walk each coin -> generate an OHLC candle per tick
+  state.coins.forEach(c=>{
+    const open = c.price;
+    const shock = gaussian()*c.vol + c.drift;
+    let close = open * (1+shock);
+    if(close < 0.0001) close = 0.0001;
+    const wick = Math.max(open,close) * (Math.random()*0.006);
+    const high = Math.max(open,close) + wick;
+    const low = Math.max(0.0001, Math.min(open,close) - wick);
+    c.prevPrice = open;
+    c.price = close;
+    const vol = (Math.abs(close-open)/open + 0.0015) * (0.4 + Math.random()*1.2);
+    c.candles.push({o:open,h:high,l:low,c:close,vol});
+    if(c.candles.length>90) c.candles.shift();
+  });
+
+  // occasional news event (can extend the candle just generated)
+  if(Math.random() < 0.30){
+    triggerNews();
+  }
+
+  // day rollover every 8 ticks
+  if(state.ticksToday >= 8){
+    state.ticksToday = 0;
+    state.day++;
+    state.tradesToday = 0;
+  }
+
+  checkLiquidations();
+  checkLimitOrders();
+
+  const nw = netWorth();
+  state.netWorthHistory.push(nw);
+  if(state.netWorthHistory.length>60) state.netWorthHistory.shift();
+  if(nw > state.maxNetWorth) state.maxNetWorth = nw;
+  if(nw < 2000) state.wasUnderBroke = true;
+  if(state.wasUnderBroke && nw >= 5000) unlock('survivor');
+  if(nw >= 20000) unlock('twenty_k');
+  if(nw >= 50000) unlock('fifty_k');
+  if(nw >= 100000) unlock('hundred_k');
+
+  renderAll(true);
+  queueSave();
+}
+
+function triggerNews(){
+  const ev = NEWS_EVENTS[Math.floor(Math.random()*NEWS_EVENTS.length)];
+  let targets = [];
+  if(ev.mode==='all') targets = state.coins;
+  else if(ev.mode==='meme') targets = state.coins.filter(c=>['pxl','woof'].includes(c.id));
+  else if(ev.mode==='single') targets = [state.coins[Math.floor(Math.random()*state.coins.length)]];
+  else targets = [];
+
+  targets.forEach(c=>{
+    const pct = ev.min + Math.random()*(ev.max-ev.min);
+    c.price = Math.max(0.0001, c.price*(1+pct));
+    const cur = c.candles[c.candles.length-1];
+    if(cur){
+      cur.c = c.price;
+      cur.h = Math.max(cur.h, c.price);
+      cur.l = Math.min(cur.l, c.price);
+    }
+  });
+
+  const label = targets.length===1 ? targets[0].sym : (ev.mode==='meme'?'MEME COINS':'MARKET');
+  const headline = ev.text(label);
+  state.news.unshift({time: nowLabel(), tag: ev.tag, text: headline});
+  if(state.news.length>25) state.news.pop();
+  toast('📰 Market Wire', headline);
+}
+
+function netWorth(){
+  let total = state.cash;
+  for(const id in state.holdings){
+    const h = state.holdings[id];
+    const c = coinById(id);
+    if(c) total += h.qty * c.price;
+  }
+  state.positions.forEach(p=>{
+    total += p.margin + calcPositionPnl(p);
+  });
+  return total;
+}
+
+/* ---- Leveraged position math ---- */
+function calcPositionPnl(pos){
+  const c = coinById(pos.coinId);
+  if(!c) return 0;
+  const chg = (c.price - pos.entryPrice)/pos.entryPrice;
+  const dir = pos.side==='long' ? 1 : -1;
+  let pnl = pos.margin * pos.leverage * chg * dir;
+  return Math.max(pnl, -pos.margin);
+}
+function liquidationPrice(pos){
+  return pos.side==='long'
+    ? pos.entryPrice * (1 - 1/pos.leverage)
+    : pos.entryPrice * (1 + 1/pos.leverage);
+}
+function openPosition(coinId, side, margin, leverage){
+  const c = coinById(coinId);
+  if(!c || !margin || margin<=0) { toast('⚠ Invalid Margin','Enter a margin amount to open a position'); return; }
+  if(margin > state.cash + 1e-9){ toast('⚠ Insufficient Funds', `Need ${fmt(margin)} margin, you have ${fmt(state.cash)}`); return; }
+  state.cash -= margin;
+  const pos = {id:'p'+Date.now()+Math.floor(Math.random()*1000), coinId, side, margin, leverage, entryPrice:c.price, openLabel:nowLabel()};
+  state.positions.push(pos);
+  state.totalPositions++;
+  state.tx.unshift({time:nowLabel(), type: side==='long'?'LONG OPEN':'SHORT OPEN', sym:c.sym, qty:margin*leverage/c.price, price:c.price, total:margin});
+  if(state.tx.length>100) state.tx.pop();
+  unlock(side==='long' ? 'first_long' : 'first_short');
+  if(leverage>=20) unlock('leverage_master');
+  toast(side==='long'?'▲ Long Opened':'▼ Short Opened', `${c.sym} · ${leverage}x · margin ${fmt(margin)}`);
+  renderAll(false);
+  queueSave();
+}
+function closePosition(posId, forced){
+  const idx = state.positions.findIndex(p=>p.id===posId);
+  if(idx===-1) return;
+  const pos = state.positions[idx];
+  const c = coinById(pos.coinId);
+  const pnl = calcPositionPnl(pos);
+  state.cash += pos.margin + pnl;
+  state.positions.splice(idx,1);
+  state.tx.unshift({
+    time:nowLabel(),
+    type: forced ? 'LIQUIDATED' : (pos.side==='long'?'LONG CLOSE':'SHORT CLOSE'),
+    sym:c ? c.sym : '?', qty: pos.margin*pos.leverage/pos.entryPrice, price: c?c.price:pos.entryPrice,
+    total: pos.margin+pnl, profit: pnl
+  });
+  if(state.tx.length>100) state.tx.pop();
+  if(pnl>0) unlock('profit_take');
+  if(forced){
+    unlock('liquidated');
+    toast('💥 Position Liquidated', `${c?c.sym:''} ${pos.side} · lost ${fmt(pos.margin)} margin`);
+  } else {
+    toast(pnl>=0?'✅ Position Closed':'☑ Position Closed', `${pnl>=0?'+':''}${fmt(pnl)} P/L`);
+  }
+  renderAll(false);
+  queueSave();
+}
+function checkLiquidations(){
+  [...state.positions].forEach(p=>{
+    const pnl = calcPositionPnl(p);
+    if(pnl <= -p.margin + 1e-9){
+      closePosition(p.id, true);
+    }
+  });
+}
+
+/* ---- Limit orders ---- */
+function reservedCash(excludeId){
+  return state.limitOrders
+    .filter(o=>o.id!==excludeId && ((o.kind==='spot' && o.side==='buy') || o.kind==='leverage'))
+    .reduce((sum,o)=> sum + (o.kind==='spot' ? o.qty*o.limitPrice : o.margin), 0);
+}
+function reservedSellQty(coinId, excludeId){
+  return state.limitOrders
+    .filter(o=>o.kind==='spot' && o.side==='sell' && o.coinId===coinId && o.id!==excludeId)
+    .reduce((sum,o)=> sum + o.qty, 0);
+}
+function placeLimitOrder(coinId, side, qty, limitPrice, meta){
+  meta = meta || {};
+  const c = coinById(coinId);
+  if(!c || !qty || qty<=0 || !limitPrice || limitPrice<=0){
+    toast('⚠ Invalid Order', 'Enter a quantity and a valid limit price/percent'); return;
+  }
+  if(side==='buy'){
+    const cost = qty*limitPrice;
+    const avail = state.cash - reservedCash();
+    if(cost > avail + 1e-9){ toast('⚠ Insufficient Funds', `Need ${fmt(cost)} available, you have ${fmt(avail)} unreserved`); return; }
+  } else {
+    const held = state.holdings[coinId];
+    const availQty = (held ? held.qty : 0) - reservedSellQty(coinId);
+    if(qty > availQty + 1e-9){ toast('⚠ Not Enough Held', `You only have ${availQty.toLocaleString(undefined,{maximumFractionDigits:6})} ${c.sym} unreserved`); return; }
+  }
+  const order = {id:'o'+Date.now()+Math.floor(Math.random()*1000), kind:'spot', coinId, side, qty, limitPrice, mode:meta.mode||'price', pct:meta.pct, createdLabel:nowLabel()};
+  state.limitOrders.push(order);
+  unlock('limit_order');
+  const pctLabel = meta.mode==='percent' ? ` (${meta.pct>=0?'+':''}${meta.pct}% ${side==='sell'?'gain':'move'})` : '';
+  toast('📋 Limit Order Placed', `${side.toUpperCase()} ${qty.toLocaleString(undefined,{maximumFractionDigits:6})} ${c.sym} @ ${fmt(limitPrice)}${pctLabel}`);
+  renderAll(false);
+  queueSave();
+}
+function placeLeverageLimitOrder(coinId, side, margin, leverage, triggerPrice, meta){
+  meta = meta || {};
+  const c = coinById(coinId);
+  if(!c || !margin || margin<=0 || !triggerPrice || triggerPrice<=0){
+    toast('⚠ Invalid Order', 'Enter a margin amount and a valid trigger price/percent'); return;
+  }
+  const avail = state.cash - reservedCash();
+  if(margin > avail + 1e-9){ toast('⚠ Insufficient Funds', `Need ${fmt(margin)} available, you have ${fmt(avail)} unreserved`); return; }
+  const order = {id:'o'+Date.now()+Math.floor(Math.random()*1000), kind:'leverage', coinId, side, margin, leverage, triggerPrice, mode:meta.mode||'price', pct:meta.pct, createdLabel:nowLabel()};
+  state.limitOrders.push(order);
+  unlock('limit_order');
+  const pctLabel = meta.mode==='percent' ? ` (${meta.pct}% from current)` : '';
+  toast('📋 Leverage Order Placed', `${side==='long'?'▲ LONG':'▼ SHORT'} ${leverage}x · margin ${fmt(margin)} @ trigger ${fmt(triggerPrice)}${pctLabel}`);
+  renderAll(false);
+  queueSave();
+}
+function removeLimitOrder(id){
+  const idx = state.limitOrders.findIndex(o=>o.id===id);
+  if(idx!==-1) state.limitOrders.splice(idx,1);
+}
+function cancelLimitOrder(orderId){
+  if(!state.limitOrders.find(o=>o.id===orderId)) return;
+  removeLimitOrder(orderId);
+  toast('🗑 Order Cancelled', '');
+  renderAll(false);
+  queueSave();
+}
+function checkLimitOrders(){
+  [...state.limitOrders].forEach(o=>{
+    const c = coinById(o.coinId);
+    if(!c) return;
+
+    if(o.kind==='leverage'){
+      const hit = o.side==='long' ? c.price <= o.triggerPrice : c.price >= o.triggerPrice;
+      if(!hit) return;
+      if(o.margin > state.cash + 1e-9){
+        removeLimitOrder(o.id);
+        toast('⚠ Order Cancelled', `Not enough cash to open ${c.sym} ${o.side} position`);
+        return;
+      }
+      removeLimitOrder(o.id);
+      openPosition(o.coinId, o.side, o.margin, o.leverage);
+      unlock('sniper');
+      toast(`✅ ${o.side==='long'?'Long':'Short'} Order Filled`, `${c.sym} ${o.leverage}x @ ${fmt(c.price)}`);
+      return;
+    }
+
+    // spot orders
+    if(o.side==='buy' && c.price <= o.limitPrice){
+      const cost = o.qty*c.price;
+      if(cost > state.cash + 1e-9){
+        removeLimitOrder(o.id);
+        toast('⚠ Order Cancelled', `Not enough cash to fill ${c.sym} buy limit`);
+        return;
+      }
+      removeLimitOrder(o.id);
+      buy(o.coinId, o.qty);
+      unlock('sniper');
+      toast('✅ Limit Buy Filled', `${o.qty.toLocaleString(undefined,{maximumFractionDigits:6})} ${c.sym} @ ${fmt(c.price)}`);
+    } else if(o.side==='sell' && c.price >= o.limitPrice){
+      const h = state.holdings[o.coinId];
+      if(!h || h.qty < o.qty - 1e-9){
+        removeLimitOrder(o.id);
+        toast('⚠ Order Cancelled', `Not enough ${c.sym} held to fill sell limit`);
+        return;
+      }
+      removeLimitOrder(o.id);
+      sell(o.coinId, o.qty);
+      unlock('sniper');
+      const profitTag = o.mode==='percent' ? ` (${o.pct>=0?'+':''}${o.pct}% target hit)` : '';
+      toast('✅ Limit Sell Filled', `${o.qty.toLocaleString(undefined,{maximumFractionDigits:6})} ${c.sym} @ ${fmt(c.price)}${profitTag}`);
+    }
+  });
+}
+
+/* ================= TRADING ================= */
+function buy(coinId, qty){
+  const c = coinById(coinId);
+  if(!c || qty<=0) return;
+  const cost = c.price*qty;
+  if(cost > state.cash + 1e-9){ toast('⚠ Insufficient Funds', `Need ${fmt(cost)}, you have ${fmt(state.cash)}`); return; }
+  state.cash -= cost;
+  const h = state.holdings[coinId] || {qty:0, avgCost:0};
+  const newQty = h.qty + qty;
+  h.avgCost = (h.avgCost*h.qty + cost)/newQty;
+  h.qty = newQty;
+  state.holdings[coinId] = h;
+  logTrade('BUY', coinId, qty, c.price, cost);
+  if(cost >= 5000) unlock('big_spender');
+  checkDiversified();
+  renderAll(false);
+  queueSave();
+}
+
+function sell(coinId, qty){
+  const c = coinById(coinId);
+  const h = state.holdings[coinId];
+  if(!c || !h || qty<=0) return;
+  qty = Math.min(qty, h.qty);
+  const proceeds = c.price*qty;
+  const profit = (c.price - h.avgCost)*qty;
+  state.cash += proceeds;
+  h.qty -= qty;
+  if(h.qty <= 0.00000001){ delete state.holdings[coinId]; }
+  logTrade('SELL', coinId, qty, c.price, proceeds, profit);
+  if(proceeds >= 5000) unlock('big_spender');
+  if(profit > 0) unlock('profit_take');
+  renderAll(false);
+  queueSave();
+}
+
+function logTrade(type, coinId, qty, price, total, profit){
+  const c = coinById(coinId);
+  state.tx.unshift({time:nowLabel(), type, sym:c.sym, qty, price, total, profit});
+  if(state.tx.length>100) state.tx.pop();
+  state.totalTrades++;
+  state.tradesToday++;
+  if(state.totalTrades===1) unlock('first_trade');
+  if(state.tradesToday>=10) unlock('day_trader');
+  if(state.totalTrades>=50) unlock('market_maker');
+}
+
+function checkDiversified(){
+  const n = Object.values(state.holdings).filter(h=>h.qty>0.00000001).length;
+  if(n>=4) unlock('diversified');
+}
+
+function unlock(id){
+  if(state.achievements[id]) return;
+  state.achievements[id] = true;
+  const def = ACHIEVEMENTS.find(a=>a.id===id);
+  if(def) toast('🏆 Achievement Unlocked', def.name);
+}
+
+/* ================= UI: TOASTS ================= */
+function toast(title, msg){
+  const wrap = document.getElementById('toast-wrap');
+  const el = document.createElement('div');
+  el.className='toast';
+  el.innerHTML = `<b>${title}</b>${msg}`;
+  wrap.appendChild(el);
+  setTimeout(()=> el.remove(), 4000);
+}
+
+/* ================= RENDER ================= */
+function sparkline(canvas, history, color){
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width = canvas.offsetWidth * 2;
+  const h = canvas.height = canvas.offsetHeight * 2;
+  ctx.clearRect(0,0,w,h);
+  if(history.length<2) return;
+  const min = Math.min(...history), max = Math.max(...history);
+  const range = (max-min) || 1;
+  ctx.beginPath();
+  history.forEach((p,i)=>{
+    const x = (i/(history.length-1))*w;
+    const y = h - ((p-min)/range)*h;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+}
+
+function candleChart(canvas, coin){
+  const ctx = canvas.getContext('2d');
+  const cssW = canvas.offsetWidth || 600;
+  const cssH = canvas.offsetHeight || 360;
+  const w = canvas.width = cssW*2;
+  const h = canvas.height = cssH*2;
+  ctx.clearRect(0,0,w,h);
+
+  const overlay = document.getElementById('modalChartOverlay');
+  if(overlay){ overlay.width = w; overlay.height = h; overlay.getContext('2d').clearRect(0,0,w,h); }
+
+  const candles = coin.candles;
+  if(!candles || !candles.length) return;
+  const visible = candles.slice(-70);
+  const upColor = '#00ffa3', downColor = '#ff5470';
+
+  const positions = state.positions.filter(p=>p.coinId===coin.id);
+  const orders = state.limitOrders.filter(o=>o.coinId===coin.id);
+
+  // gather all price levels so lines are always in view, TradingView-style auto-scale
+  let pricePoints = [];
+  visible.forEach(cd=>{ pricePoints.push(cd.h, cd.l); });
+  pricePoints.push(coin.price);
+  positions.forEach(p=>{ pricePoints.push(p.entryPrice, liquidationPrice(p)); });
+  orders.forEach(o=>{ pricePoints.push(o.kind==='leverage' ? o.triggerPrice : o.limitPrice); });
+  let min = Math.min(...pricePoints), max = Math.max(...pricePoints);
+  let range = (max-min) || max*0.02 || 1;
+  min -= range*0.08; max += range*0.08; range = max-min;
+
+  // layout: price area on top, volume histogram strip below
+  const padTop = h*0.025, padBottom = h*0.06;
+  const volH = h*0.14, gap = h*0.02;
+  const priceTop = padTop;
+  const priceH = h - padTop - padBottom - volH - gap;
+  const volTop = priceTop + priceH + gap;
+  const yFor = v => priceTop + priceH - ((v-min)/range)*priceH;
+
+  // horizontal grid + price labels
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  ctx.font = '20px JetBrains Mono, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  for(let i=0;i<=5;i++){
+    const v = min + range*(i/5);
+    const y = yFor(v);
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke();
+    ctx.fillText(fmt(v), 6, y-6);
+  }
+  // vertical grid
+  const slot = w/visible.length;
+  ctx.strokeStyle = 'rgba(255,255,255,0.035)';
+  for(let i=0;i<visible.length;i+=Math.max(1,Math.round(visible.length/8))){
+    const x = i*slot;
+    ctx.beginPath(); ctx.moveTo(x,priceTop); ctx.lineTo(x,volTop+volH); ctx.stroke();
+  }
+
+  // candles
+  const bodyW = Math.max(slot*0.5, 2);
+  visible.forEach((cd,i)=>{
+    const cx = i*slot + slot/2;
+    const up = cd.c >= cd.o;
+    const color = up ? upColor : downColor;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(slot*0.08,1.5);
+    ctx.beginPath(); ctx.moveTo(cx, yFor(cd.h)); ctx.lineTo(cx, yFor(cd.l)); ctx.stroke();
+    const yO = yFor(cd.o), yC = yFor(cd.c);
+    const top = Math.min(yO,yC), bh = Math.max(Math.abs(yO-yC), 3);
+    ctx.fillStyle = color;
+    ctx.fillRect(cx-bodyW/2, top, bodyW, bh);
+  });
+
+  // volume histogram
+  const volMax = Math.max(...visible.map(cd=>cd.vol||0.001));
+  visible.forEach((cd,i)=>{
+    const cx = i*slot + slot/2;
+    const up = cd.c >= cd.o;
+    const barH = Math.max(((cd.vol||0)/volMax)*volH, 1.5);
+    ctx.fillStyle = up ? 'rgba(0,255,163,0.35)' : 'rgba(255,84,112,0.35)';
+    ctx.fillRect(cx-bodyW/2, volTop+volH-barH, bodyW, barH);
+  });
+  ctx.font = '18px JetBrains Mono, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.fillText('VOL', 6, volTop+18);
+
+  // live price line
+  drawPriceLine(ctx, w, yFor(coin.price), '#5eead4', [2,0], fmt(coin.price), true);
+
+  // position lines (entry solid + liquidation dotted)
+  positions.forEach(p=>{
+    const color = p.side==='long' ? upColor : downColor;
+    const pnl = calcPositionPnl(p);
+    drawPriceLine(ctx, w, yFor(p.entryPrice), color, [10,6], `${p.side==='long'?'▲':'▼'} ${p.leverage}x ${pnl>=0?'+':''}${fmt(pnl)}`, false);
+    drawPriceLine(ctx, w, yFor(liquidationPrice(p)), '#ffb703', [3,4], 'LIQ', false);
+  });
+
+  // pending order lines
+  orders.forEach(o=>{
+    if(o.kind==='leverage'){
+      const color = o.side==='long' ? upColor : downColor;
+      drawPriceLine(ctx, w, yFor(o.triggerPrice), color, [5,5], `${o.side==='long'?'LONG':'SHORT'} LIMIT ${o.leverage}x`, false);
+    } else {
+      const color = o.side==='buy' ? upColor : downColor;
+      drawPriceLine(ctx, w, yFor(o.limitPrice), color, [5,5], `${o.side==='buy'?'BUY':'SELL'} LIMIT`, false);
+    }
+  });
+
+  chartMetrics = {min, max, range, priceTop, priceH, volTop, volH, visible, slot, w, h, coinId:coin.id};
+  updateChartLegend(visible[visible.length-1]);
+}
+
+function drawPriceLine(ctx, w, y, color, dash, label, filled){
+  if(y<0 || !isFinite(y)) return;
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.setLineDash(dash);
+  ctx.lineWidth = filled ? 2 : 1.6;
+  ctx.globalAlpha = filled ? 0.9 : 0.75;
+  ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w-4,y); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
+  if(label){
+    ctx.font = '19px JetBrains Mono, monospace';
+    const textW = ctx.measureText(label).width;
+    const tagW = textW+16, tagH=26;
+    const tagX = w - tagW - 4, tagY = y - tagH/2;
+    ctx.fillStyle = filled ? color : 'rgba(8,11,12,0.92)';
+    if(filled){ ctx.fillRect(tagX,tagY,tagW,tagH); }
+    else{
+      ctx.strokeStyle = color; ctx.lineWidth = 1.4;
+      ctx.fillRect(tagX,tagY,tagW,tagH);
+      ctx.strokeRect(tagX,tagY,tagW,tagH);
+    }
+    ctx.fillStyle = filled ? '#04140d' : color;
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, tagX+8, y+1);
+  }
+  ctx.restore();
+}
+
+function updateChartLegend(candle){
+  const el = document.getElementById('chartLegendLeft');
+  if(!el || !candle) return;
+  const up = candle.c >= candle.o;
+  el.innerHTML = `<span style="color:${up?'#00ffa3':'#ff5470'}">O ${fmt(candle.o)}  H ${fmt(candle.h)}  L ${fmt(candle.l)}  C ${fmt(candle.c)}</span>`;
+}
+
+function wireChartOverlay(){
+  const overlay = document.getElementById('modalChartOverlay');
+  overlay.addEventListener('mousemove', (e)=>{
+    if(!chartMetrics) return;
+    const rect = overlay.getBoundingClientRect();
+    const ratio = overlay.width / rect.width;
+    const x = (e.clientX - rect.left) * ratio;
+    const y = (e.clientY - rect.top) * ratio;
+    const m = chartMetrics;
+    const idx = Math.max(0, Math.min(m.visible.length-1, Math.floor(x/m.slot)));
+    const candle = m.visible[idx];
+    const cx = idx*m.slot + m.slot/2;
+    const ctx = overlay.getContext('2d');
+    ctx.clearRect(0,0,m.w,m.h);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.setLineDash([4,4]); ctx.lineWidth=1.4;
+    ctx.beginPath(); ctx.moveTo(cx,0); ctx.lineTo(cx,m.h); ctx.stroke();
+    if(y>=m.priceTop && y<=m.priceTop+m.priceH){
+      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(m.w,y); ctx.stroke();
+      ctx.setLineDash([]);
+      const price = m.max - ((y-m.priceTop)/m.priceH)*m.range;
+      drawPriceLine(ctx, m.w, y, '#e7ecec', [1,0], fmt(price), true);
+    }
+    ctx.restore();
+    updateChartLegend(candle);
+  });
+  overlay.addEventListener('mouseleave', ()=>{
+    if(!chartMetrics) return;
+    overlay.getContext('2d').clearRect(0,0,chartMetrics.w,chartMetrics.h);
+    updateChartLegend(chartMetrics.visible[chartMetrics.visible.length-1]);
+  });
+}
+
+function netWorthLineChart(){
+  const canvas = document.getElementById('netWorthChart');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width = canvas.offsetWidth*2;
+  const h = canvas.height = 140*2;
+  canvas.style.height='140px';
+  ctx.clearRect(0,0,w,h);
+  const hist = state.netWorthHistory;
+  if(hist.length<2) return;
+  const min = Math.min(...hist, STARTING_CASH*0.9);
+  const max = Math.max(...hist, STARTING_CASH*1.1);
+  const range = (max-min)||1;
+  // baseline (starting cash)
+  const baseY = h - ((STARTING_CASH-min)/range)*h;
+  ctx.strokeStyle = '#2a3438'; ctx.setLineDash([4,4]); ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(0,baseY); ctx.lineTo(w,baseY); ctx.stroke();
+  ctx.setLineDash([]);
+
+  const up = hist[hist.length-1] >= hist[0];
+  ctx.beginPath();
+  hist.forEach((v,i)=>{
+    const x = (i/(hist.length-1))*w;
+    const y = h - ((v-min)/range)*h;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle = up ? '#00ffa3' : '#ff5470';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.lineTo(w,h); ctx.lineTo(0,h); ctx.closePath();
+  const grad = ctx.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0, up? 'rgba(0,255,163,0.18)':'rgba(255,84,112,0.18)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
+  ctx.fill();
+}
+
+function renderHeader(){
+  const nw = netWorth();
+  document.getElementById('netWorthVal').textContent = fmt(nw);
+  document.getElementById('netWorthVal').style.color = nw>=STARTING_CASH ? 'var(--green)' : 'var(--red)';
+  document.getElementById('cashVal').textContent = fmt(state.cash);
+  document.getElementById('dayVal').textContent = state.day;
+  document.getElementById('athVal').textContent = fmt(state.maxNetWorth);
+}
+
+function renderTicker(){
+  const track = document.getElementById('tickerTrack');
+  const items = state.coins.map(c=>{
+    const chg = c.prevPrice ? (c.price-c.prevPrice)/c.prevPrice : 0;
+    const cls = chg>=0?'tick-up':'tick-down';
+    return `<span class="ticker-item"><b>${c.sym}</b> ${fmt(c.price)} <span class="${cls}">${fmtPct(chg)}</span></span>`;
+  }).join('');
+  track.innerHTML = items + items; // duplicate for seamless loop
+}
+
+function renderMarket(flash){
+  const body = document.getElementById('marketBody');
+  const needsBuild = body.querySelectorAll('.coin-card').length !== state.coins.length;
+  if(needsBuild){
+    buildMarketDOM(body);
+  }
+  updateMarketDOM(body, flash);
+}
+
+function buildMarketDOM(body){
+  document.getElementById('marketSub').textContent = `${state.coins.length} assets · live`;
+  body.innerHTML = state.coins.map(c=>{
+    const held = state.holdings[c.id];
+    return `<div class="coin-card clickable-card" data-coin="${c.id}">
+      <div class="coin-icon" style="background:${c.color}">${c.sym.slice(0,2)}</div>
+      <div class="coin-name">
+        <b id="name-${c.id}">${c.name}</b>
+        <span>${c.sym}</span>
+        <canvas style="width:90px;height:24px;margin-top:4px;" data-spark="${c.id}"></canvas>
+      </div>
+      <div class="coin-price" id="price-${c.id}"></div>
+      <div class="coin-change" id="change-${c.id}"></div>
+      <div class="coin-actions">
+        <input type="number" min="0" step="any" placeholder="qty" id="qty-${c.id}">
+        <button class="buy-btn" data-buy="${c.id}">BUY</button>
+        <button class="sell-btn" data-sell="${c.id}" id="sell-${c.id}" ${!held?'disabled':''}>SELL</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateMarketDOM(body, flash){
+  state.coins.forEach(c=>{
+    const chg = c.prevPrice ? (c.price-c.prevPrice)/c.prevPrice : 0;
+    const held = state.holdings[c.id];
+    const posCount = state.positions.filter(p=>p.coinId===c.id).length;
+
+    const priceEl = document.getElementById(`price-${c.id}`);
+    if(priceEl) priceEl.textContent = fmt(c.price);
+
+    const changeEl = document.getElementById(`change-${c.id}`);
+    if(changeEl){
+      changeEl.textContent = fmtPct(chg);
+      changeEl.className = 'coin-change ' + (chg>=0?'tag-pos':'tag-neg');
+    }
+
+    const nameEl = document.getElementById(`name-${c.id}`);
+    if(nameEl){
+      nameEl.innerHTML = `${c.name} ${held?`<span style="color:var(--cyan); font-weight:400; font-size:10px;">· holding</span>`:''}${posCount?`<span style="color:var(--amber); font-weight:400; font-size:10px;"> · ${posCount} pos</span>`:''}`;
+    }
+
+    const sellBtn = document.getElementById(`sell-${c.id}`);
+    if(sellBtn) sellBtn.disabled = !held;
+
+    const card = body.querySelector(`.coin-card[data-coin="${c.id}"]`);
+    if(card && flash){
+      card.classList.remove('flash-up','flash-down');
+      if(chg>0.001) card.classList.add('flash-up');
+      else if(chg<-0.001) card.classList.add('flash-down');
+      clearTimeout(card._flashTimer);
+      card._flashTimer = setTimeout(()=> card.classList.remove('flash-up','flash-down'), 900);
+    }
+
+    const canvas = body.querySelector(`canvas[data-spark="${c.id}"]`);
+    if(canvas) sparkline(canvas, coinHistory(c).slice(-20), c.color);
+  });
+}
+
+function renderPortfolio(){
+  const body = document.getElementById('portfolioBody');
+  const entries = Object.entries(state.holdings).filter(([,h])=>h.qty>0.00000001);
+  if(entries.length===0){
+    body.innerHTML = `<div class="empty-note">No holdings yet — buy your first coin from the Market panel.</div>`;
+    return;
+  }
+  const nw = netWorth();
+  body.innerHTML = entries.map(([id,h])=>{
+    const c = coinById(id);
+    const value = h.qty*c.price;
+    const pnl = (c.price - h.avgCost)*h.qty;
+    const pnlPct = h.avgCost ? (c.price-h.avgCost)/h.avgCost : 0;
+    const pnlCls = pnl>=0?'tag-pos':'tag-neg';
+    const allocPct = nw>0 ? (value/nw*100) : 0;
+    return `<div class="holding-row">
+      <div class="holding-left">
+        <b>${c.sym}</b>
+        <span>${h.qty.toLocaleString(undefined,{maximumFractionDigits:6})} @ avg ${fmt(h.avgCost)}</span>
+        <div class="alloc-bar"><div class="alloc-fill" style="width:${allocPct}%; background:${c.color}"></div></div>
+      </div>
+      <div class="holding-right">
+        <div>${fmt(value)}</div>
+        <div class="${pnlCls}">${pnl>=0?'+':''}${fmt(pnl)} (${fmtPct(pnlPct)})</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function positionRowHtml(p, showSym){
+  const c = coinById(p.coinId);
+  const pnl = calcPositionPnl(p);
+  const pnlCls = pnl>=0 ? 'tag-pos':'tag-neg';
+  const liq = liquidationPrice(p);
+  const closeToLiq = c && (Math.abs(c.price-liq)/c.price < 0.05);
+  return `<div class="position-row">
+    <div class="pos-top">
+      <div><span class="side-tag ${p.side==='long'?'side-long':'side-short'}">${p.side}</span>${showSym?`<b>${c?c.sym:'?'}</b>`:''} ${p.leverage}x</div>
+      <button class="pos-close-btn" data-close-pos="${p.id}">CLOSE</button>
+    </div>
+    <div style="display:flex; justify-content:space-between; color:var(--dim);">
+      <span>margin ${fmt(p.margin)} · entry ${fmt(p.entryPrice)}</span>
+      <span class="${pnlCls}">${pnl>=0?'+':''}${fmt(pnl)}</span>
+    </div>
+    <div class="${closeToLiq?'liq-warn':''}" style="font-size:10px; color:${closeToLiq?'var(--amber)':'var(--dim)'};">liq. at ${fmt(liq)}${closeToLiq?' ⚠ near liquidation':''}</div>
+  </div>`;
+}
+
+function renderPositions(){
+  const body = document.getElementById('positionsBody');
+  document.getElementById('posCount').textContent = state.positions.length ? `${state.positions.length} open` : '';
+  if(state.positions.length===0){
+    body.innerHTML = `<div class="empty-note">No leveraged positions — click a coin to open Long/Short.</div>`;
+    return;
+  }
+  body.innerHTML = state.positions.map(p=>positionRowHtml(p,true)).join('');
+  body.querySelectorAll('[data-close-pos]').forEach(btn=>{
+    btn.onclick = ()=> closePosition(btn.getAttribute('data-close-pos'), false);
+  });
+}
+
+function orderRowHtml(o, showSym){
+  const c = coinById(o.coinId);
+  if(o.kind==='leverage'){
+    const dist = c ? ((o.triggerPrice - c.price)/c.price*100) : 0;
+    const pctTag = o.mode==='percent' ? ` · ${o.pct}% from current` : '';
+    return `<div class="order-row">
+      <div class="order-top">
+        <div><span class="side-tag ${o.side==='long'?'side-long':'side-short'}">${o.side} limit</span>${showSym?`<b>${c?c.sym:'?'}</b>`:''} ${o.leverage}x</div>
+        <button class="order-cancel-btn" data-cancel-order="${o.id}">CANCEL</button>
+      </div>
+      <div style="display:flex; justify-content:space-between; color:var(--dim);">
+        <span>margin ${fmt(o.margin)} · trigger ${fmt(o.triggerPrice)}${pctTag}</span>
+        <span>${dist>=0?'+':''}${dist.toFixed(2)}% away</span>
+      </div>
+    </div>`;
+  }
+  const dist = c ? ((o.limitPrice - c.price)/c.price*100) : 0;
+  const pctTag = o.mode==='percent' ? ` · ${o.pct>=0?'+':''}${o.pct}% ${o.side==='sell'?'gain target':'from current'}` : '';
+  return `<div class="order-row">
+    <div class="order-top">
+      <div><span class="side-tag ${o.side==='buy'?'side-long':'side-short'}">${o.side} limit</span>${showSym?`<b>${c?c.sym:'?'}</b>`:''}</div>
+      <button class="order-cancel-btn" data-cancel-order="${o.id}">CANCEL</button>
+    </div>
+    <div style="display:flex; justify-content:space-between; color:var(--dim);">
+      <span>${o.qty.toLocaleString(undefined,{maximumFractionDigits:6})} @ ${fmt(o.limitPrice)}${pctTag}</span>
+      <span>${dist>=0?'+':''}${dist.toFixed(2)}% away</span>
+    </div>
+  </div>`;
+}
+function renderOrders(){
+  const body = document.getElementById('ordersBody');
+  document.getElementById('orderCount').textContent = state.limitOrders.length ? `${state.limitOrders.length} pending` : '';
+  if(state.limitOrders.length===0){
+    body.innerHTML = `<div class="empty-note">No pending orders — click a coin to place a limit order.</div>`;
+    return;
+  }
+  body.innerHTML = state.limitOrders.map(o=>orderRowHtml(o,true)).join('');
+  body.querySelectorAll('[data-cancel-order]').forEach(btn=>{
+    btn.onclick = ()=> cancelLimitOrder(btn.getAttribute('data-cancel-order'));
+  });
+}
+
+function renderNews(){
+  const body = document.getElementById('newsBody');
+  if(state.news.length===0){ body.innerHTML = `<div class="empty-note">No market news yet.</div>`; return; }
+  body.innerHTML = state.news.map(n=>{
+    const tagCls = n.tag==='pump'?'tag-pump': n.tag==='dump'?'tag-dump':'tag-market';
+    return `<div class="news-item">
+      <span class="news-tag ${tagCls}">${n.tag}</span>${n.text}
+      <div class="news-time">${n.time}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderHistory(){
+  const body = document.getElementById('txBody');
+  if(state.tx.length===0){ body.innerHTML = `<div class="empty-note">No trades yet.</div>`; return; }
+  body.innerHTML = state.tx.map(t=>{
+    const cls = t.type==='BUY'?'tx-buy':'tx-sell';
+    const profitStr = (t.type==='SELL' && t.profit!==undefined) ? ` <span style="color:${t.profit>=0?'var(--green)':'var(--red)'}">(${t.profit>=0?'+':''}${fmt(t.profit)})</span>` : '';
+    return `<div class="tx-row">
+      <span class="${cls}">${t.type} ${t.qty.toLocaleString(undefined,{maximumFractionDigits:6})} ${t.sym}</span>
+      <span>${fmt(t.total)}${profitStr}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderAchievements(){
+  const grid = document.getElementById('achGrid');
+  const unlockedCount = Object.keys(state.achievements).length;
+  document.getElementById('achCount').textContent = `${unlockedCount}/${ACHIEVEMENTS.length}`;
+  grid.innerHTML = ACHIEVEMENTS.map(a=>{
+    const un = !!state.achievements[a.id];
+    return `<div class="ach ${un?'unlocked':''}" title="${a.desc}">
+      <span class="ico">${a.ico}</span><b>${a.name}</b>
+      <span style="color:var(--dim)">${un?'Unlocked':'Locked'}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderAll(flash){
+  renderHeader();
+  renderTicker();
+  renderMarket(flash);
+  renderPortfolio();
+  renderPositions();
+  renderOrders();
+  renderHistory();
+  renderNews();
+  renderAchievements();
+  netWorthLineChart();
+  if(modalCoinId) renderModal();
+}
+
+/* ================= MODAL: COIN DETAIL ================= */
+function openModal(coinId){
+  modalCoinId = coinId;
+  document.getElementById('modalOverlay').classList.add('open');
+  renderModal();
+}
+function closeModal(){
+  modalCoinId = null;
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+function computeSpotTriggerPrice(c, side){
+  if(modalSpotTriggerMode==='percent'){
+    const pct = parseFloat(document.getElementById('modalLimitPct').value);
+    if(isNaN(pct)) return null;
+    if(side==='sell'){
+      const h = state.holdings[c.id];
+      if(!h) return null;
+      return h.avgCost*(1+pct/100);
+    }
+    return c.price*(1-pct/100);
+  }
+  const p = parseFloat(document.getElementById('modalLimitPrice').value);
+  return (!p || p<=0) ? null : p;
+}
+function computeLevTriggerPrice(c, side){
+  if(modalLevTriggerMode==='percent'){
+    const pct = parseFloat(document.getElementById('modalLevTriggerPct').value);
+    if(isNaN(pct)) return null;
+    return side==='long' ? c.price*(1-pct/100) : c.price*(1+pct/100);
+  }
+  const p = parseFloat(document.getElementById('modalLevTriggerPrice').value);
+  return (!p || p<=0) ? null : p;
+}
+
+function renderModal(){
+  const c = coinById(modalCoinId);
+  if(!c){ closeModal(); return; }
+  const chg = c.prevPrice ? (c.price-c.prevPrice)/c.prevPrice : 0;
+  document.getElementById('modalIcon').style.background = c.color;
+  document.getElementById('modalIcon').textContent = c.sym.slice(0,2);
+  document.getElementById('modalName').textContent = c.name;
+  document.getElementById('modalSym').textContent = c.sym;
+  document.getElementById('modalPrice').textContent = fmt(c.price);
+  const chgEl = document.getElementById('modalChange');
+  chgEl.textContent = fmtPct(chg);
+  chgEl.style.color = chg>=0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('modalSpotLabel').textContent = `Quantity (${c.sym})`;
+
+  candleChart(document.getElementById('modalChart'), c);
+
+  // spot order-type toggle (Market / Limit)
+  document.querySelectorAll('#spotOrderTypeRow .otype-btn').forEach(btn=>{
+    btn.classList.toggle('active', btn.getAttribute('data-otype')===modalOrderType);
+  });
+  document.getElementById('limitPriceWrap').style.display = modalOrderType==='limit' ? 'block' : 'none';
+  document.getElementById('modalBuyBtn').textContent = modalOrderType==='limit' ? 'PLACE BUY LIMIT' : 'BUY';
+  document.getElementById('modalSellBtn').textContent = modalOrderType==='limit' ? 'PLACE SELL LIMIT' : 'SELL';
+
+  document.querySelectorAll('#spotTriggerModeRow .otype-btn').forEach(btn=>{
+    btn.classList.toggle('active', btn.getAttribute('data-tmode')===modalSpotTriggerMode);
+  });
+  document.getElementById('spotPriceField').style.display = modalSpotTriggerMode==='price' ? 'block':'none';
+  document.getElementById('spotPercentField').style.display = modalSpotTriggerMode==='percent' ? 'block':'none';
+  if(modalSpotTriggerMode==='percent'){
+    const buyTarget = computeSpotTriggerPrice(c,'buy');
+    const sellTarget = computeSpotTriggerPrice(c,'sell');
+    const held = state.holdings[c.id];
+    const parts = [];
+    parts.push(`buy target ${buyTarget?fmt(buyTarget):'—'}`);
+    parts.push(held ? `sell target ${sellTarget?fmt(sellTarget):'—'} (avg cost ${fmt(held.avgCost)})` : `sell target — (no holdings yet)`);
+    document.getElementById('spotPercentPreview').innerHTML = parts.join(' · ');
+  }
+
+  // leverage buttons (build once per render to reflect current selection)
+  const levRow = document.getElementById('levRow');
+  levRow.innerHTML = LEVERAGE_OPTIONS.map(l=>
+    `<button class="lev-btn ${l===modalLeverage?'active':''}" data-lev="${l}">${l}x</button>`
+  ).join('');
+  levRow.querySelectorAll('[data-lev]').forEach(btn=>{
+    btn.onclick = ()=>{ modalLeverage = parseInt(btn.getAttribute('data-lev')); renderModal(); };
+  });
+
+  const marginInput = document.getElementById('modalMargin');
+  const marginVal = parseFloat(marginInput.value) || 0;
+  const estLine = document.getElementById('estLine');
+
+  document.querySelectorAll('#levOrderTypeRow .otype-btn').forEach(btn=>{
+    btn.classList.toggle('active', btn.getAttribute('data-lotype')===modalLevOrderType);
+  });
+  document.getElementById('levTriggerWrap').style.display = modalLevOrderType==='limit' ? 'block':'none';
+  document.getElementById('modalLongBtn').textContent = modalLevOrderType==='limit' ? '▲ PLACE LONG ORDER' : '▲ LONG';
+  document.getElementById('modalShortBtn').textContent = modalLevOrderType==='limit' ? '▼ PLACE SHORT ORDER' : '▼ SHORT';
+  document.querySelectorAll('#levTriggerModeRow .otype-btn').forEach(btn=>{
+    btn.classList.toggle('active', btn.getAttribute('data-ltmode')===modalLevTriggerMode);
+  });
+  document.getElementById('levPriceField').style.display = modalLevTriggerMode==='price' ? 'block':'none';
+  document.getElementById('levPercentField').style.display = modalLevTriggerMode==='percent' ? 'block':'none';
+
+  if(marginVal>0){
+    const notional = marginVal*modalLeverage;
+    if(modalLevOrderType==='limit'){
+      const longTrig = computeLevTriggerPrice(c,'long');
+      const shortTrig = computeLevTriggerPrice(c,'short');
+      const longLiq = longTrig ? longTrig*(1-1/modalLeverage) : null;
+      const shortLiq = shortTrig ? shortTrig*(1+1/modalLeverage) : null;
+      estLine.innerHTML = `notional ${fmt(notional)}<br>long trigger ${longTrig?fmt(longTrig):'—'} · liq ${longLiq?fmt(longLiq):'—'}<br>short trigger ${shortTrig?fmt(shortTrig):'—'} · liq ${shortLiq?fmt(shortLiq):'—'}`;
+    } else {
+      const longLiq = c.price*(1-1/modalLeverage);
+      const shortLiq = c.price*(1+1/modalLeverage);
+      estLine.innerHTML = `notional ${fmt(notional)} · long liq ${fmt(longLiq)} · short liq ${fmt(shortLiq)}`;
+    }
+  } else {
+    estLine.innerHTML = 'Enter margin to preview liquidation price';
+  }
+
+  const positionsForCoin = state.positions.filter(p=>p.coinId===c.id);
+  const posBody = document.getElementById('modalPositionsBody');
+  if(positionsForCoin.length===0){
+    posBody.innerHTML = `<div class="empty-note">No open positions on ${c.sym} yet.</div>`;
+  } else {
+    posBody.innerHTML = positionsForCoin.map(p=>positionRowHtml(p,false)).join('');
+    posBody.querySelectorAll('[data-close-pos]').forEach(btn=>{
+      btn.onclick = ()=> closePosition(btn.getAttribute('data-close-pos'), false);
+    });
+  }
+
+  const ordersForCoin = state.limitOrders.filter(o=>o.coinId===c.id);
+  const ordBody = document.getElementById('modalOrdersBody');
+  if(ordersForCoin.length===0){
+    ordBody.innerHTML = `<div class="empty-note">No pending limit orders on ${c.sym}.</div>`;
+  } else {
+    ordBody.innerHTML = ordersForCoin.map(o=>orderRowHtml(o,false)).join('');
+    ordBody.querySelectorAll('[data-cancel-order]').forEach(btn=>{
+      btn.onclick = ()=> cancelLimitOrder(btn.getAttribute('data-cancel-order'));
+    });
+  }
+}
+
+function wireModalStaticControls(){
+  document.getElementById('modalCloseBtn').onclick = closeModal;
+  document.getElementById('modalOverlay').addEventListener('click', (e)=>{
+    if(e.target.id==='modalOverlay') closeModal();
+  });
+  document.querySelectorAll('#spotOrderTypeRow .otype-btn').forEach(btn=>{
+    btn.onclick = ()=>{ modalOrderType = btn.getAttribute('data-otype'); renderModal(); };
+  });
+  document.querySelectorAll('#spotTriggerModeRow .otype-btn').forEach(btn=>{
+    btn.onclick = ()=>{ modalSpotTriggerMode = btn.getAttribute('data-tmode'); renderModal(); };
+  });
+  document.getElementById('modalLimitPct').addEventListener('input', renderModal);
+  document.getElementById('modalLimitPrice').addEventListener('input', renderModal);
+  document.getElementById('modalBuyBtn').onclick = ()=>{
+    const c = coinById(modalCoinId);
+    const qty = parseFloat(document.getElementById('modalSpotQty').value);
+    if(!qty || qty<=0){ toast('⚠ Invalid Quantity','Enter an amount to buy'); return; }
+    if(modalOrderType==='limit'){
+      const price = computeSpotTriggerPrice(c, 'buy');
+      if(!price){ toast('⚠ Invalid Order','Enter a valid limit price or percent'); return; }
+      const pct = modalSpotTriggerMode==='percent' ? parseFloat(document.getElementById('modalLimitPct').value) : undefined;
+      placeLimitOrder(modalCoinId, 'buy', qty, price, {mode:modalSpotTriggerMode, pct});
+      document.getElementById('modalLimitPrice').value=''; document.getElementById('modalLimitPct').value='';
+    } else {
+      buy(modalCoinId, qty);
+    }
+    document.getElementById('modalSpotQty').value='';
+  };
+  document.getElementById('modalSellBtn').onclick = ()=>{
+    const c = coinById(modalCoinId);
+    const input = document.getElementById('modalSpotQty');
+    let qty = parseFloat(input.value);
+    if(modalOrderType==='limit'){
+      if(!qty || qty<=0){ toast('⚠ Invalid Quantity','Enter an amount to sell'); return; }
+      const price = computeSpotTriggerPrice(c, 'sell');
+      if(!price){ toast('⚠ Invalid Order', modalSpotTriggerMode==='percent' ? 'You need to hold this coin to set a gain % target' : 'Enter a valid limit price'); return; }
+      const pct = modalSpotTriggerMode==='percent' ? parseFloat(document.getElementById('modalLimitPct').value) : undefined;
+      placeLimitOrder(modalCoinId, 'sell', qty, price, {mode:modalSpotTriggerMode, pct});
+      document.getElementById('modalLimitPrice').value=''; document.getElementById('modalLimitPct').value='';
+    } else {
+      const h = state.holdings[modalCoinId];
+      if(!h){ toast('⚠ No Holdings', `You don't hold any of this coin`); return; }
+      if(!qty || qty<=0) qty = h.qty;
+      sell(modalCoinId, qty);
+    }
+    input.value='';
+  };
+  document.getElementById('modalMargin').addEventListener('input', renderModal);
+  document.querySelectorAll('#levOrderTypeRow .otype-btn').forEach(btn=>{
+    btn.onclick = ()=>{ modalLevOrderType = btn.getAttribute('data-lotype'); renderModal(); };
+  });
+  document.querySelectorAll('#levTriggerModeRow .otype-btn').forEach(btn=>{
+    btn.onclick = ()=>{ modalLevTriggerMode = btn.getAttribute('data-ltmode'); renderModal(); };
+  });
+  document.getElementById('modalLevTriggerPrice').addEventListener('input', renderModal);
+  document.getElementById('modalLevTriggerPct').addEventListener('input', renderModal);
+  document.getElementById('modalLongBtn').onclick = ()=>{
+    const c = coinById(modalCoinId);
+    const margin = parseFloat(document.getElementById('modalMargin').value);
+    if(modalLevOrderType==='limit'){
+      const trigger = computeLevTriggerPrice(c, 'long');
+      if(!trigger){ toast('⚠ Invalid Order','Enter a valid trigger price or percent'); return; }
+      const pct = modalLevTriggerMode==='percent' ? parseFloat(document.getElementById('modalLevTriggerPct').value) : undefined;
+      placeLeverageLimitOrder(modalCoinId, 'long', margin, modalLeverage, trigger, {mode:modalLevTriggerMode, pct});
+      document.getElementById('modalLevTriggerPrice').value=''; document.getElementById('modalLevTriggerPct').value='';
+    } else {
+      openPosition(modalCoinId, 'long', margin, modalLeverage);
+    }
+    document.getElementById('modalMargin').value='';
+  };
+  document.getElementById('modalShortBtn').onclick = ()=>{
+    const c = coinById(modalCoinId);
+    const margin = parseFloat(document.getElementById('modalMargin').value);
+    if(modalLevOrderType==='limit'){
+      const trigger = computeLevTriggerPrice(c, 'short');
+      if(!trigger){ toast('⚠ Invalid Order','Enter a valid trigger price or percent'); return; }
+      const pct = modalLevTriggerMode==='percent' ? parseFloat(document.getElementById('modalLevTriggerPct').value) : undefined;
+      placeLeverageLimitOrder(modalCoinId, 'short', margin, modalLeverage, trigger, {mode:modalLevTriggerMode, pct});
+      document.getElementById('modalLevTriggerPrice').value=''; document.getElementById('modalLevTriggerPct').value='';
+    } else {
+      openPosition(modalCoinId, 'short', margin, modalLeverage);
+    }
+    document.getElementById('modalMargin').value='';
+  };
+}
+function wireMarketDelegation(){
+  const body = document.getElementById('marketBody');
+  body.addEventListener('click', (e)=>{
+    const buyBtn = e.target.closest('[data-buy]');
+    if(buyBtn){
+      const id = buyBtn.getAttribute('data-buy');
+      const input = document.getElementById(`qty-${id}`);
+      const qty = parseFloat(input.value);
+      if(!qty || qty<=0){ toast('⚠ Invalid Quantity','Enter an amount to buy'); return; }
+      buy(id, qty);
+      input.value='';
+      return;
+    }
+    const sellBtn = e.target.closest('[data-sell]');
+    if(sellBtn){
+      const id = sellBtn.getAttribute('data-sell');
+      const input = document.getElementById(`qty-${id}`);
+      let qty = parseFloat(input.value);
+      const h = state.holdings[id];
+      if(!h) return;
+      if(!qty || qty<=0) qty = h.qty; // sell all if unspecified
+      sell(id, qty);
+      input.value='';
+      return;
+    }
+    if(e.target.closest('.coin-actions')) return;
+    const card = e.target.closest('.coin-card');
+    if(card) openModal(card.getAttribute('data-coin'));
+  });
+}
+
+/* ================= CONTROLS ================= */
+function setPaused(p){
+  paused = p;
+  document.getElementById('pausedBanner').style.display = p ? 'block':'none';
+  document.getElementById('pauseBtn').textContent = p ? '▶ RESUME' : '⏸ PAUSE';
+  if(p){ clearInterval(tickTimer); }
+  else { startLoop(); }
+}
+function startLoop(){
+  clearInterval(tickTimer);
+  tickTimer = setInterval(tick, TICK_MS / SPEEDS[speedIdx]);
+}
+document.getElementById('pauseBtn').onclick = ()=> setPaused(!paused);
+document.getElementById('speedBtn').onclick = ()=>{
+  speedIdx = (speedIdx+1)%SPEEDS.length;
+  document.getElementById('speedBtn').textContent = SPEEDS[speedIdx]+'x SPEED';
+  if(!paused) startLoop();
+};
+document.getElementById('resetBtn').onclick = async ()=>{
+  if(!confirm('Reset your portfolio and wipe all saved progress? This cannot be undone.')) return;
+  state = freshState();
+  await saveState();
+  speedIdx = 0;
+  document.getElementById('speedBtn').textContent = '1x SPEED';
+  setPaused(false);
+  renderAll(false);
+  toast('🔄 Reset Complete', 'Starting fresh with $10,000');
+};
+
+/* ================= INIT ================= */
+async function init(){
+  const loaded = await loadState();
+  state = loaded || freshState();
+  if(!state.positions) state.positions = [];
+  if(state.totalPositions===undefined) state.totalPositions = 0;
+  if(!state.limitOrders) state.limitOrders = [];
+  state.limitOrders.forEach(o=>{ if(!o.kind) o.kind='spot'; });
+  // ensure all current coin defs exist, and migrate any old flat-history coins to candles
+  COIN_DEFS.forEach(def=>{
+    let c = state.coins.find(x=>x.id===def.id);
+    if(!c){
+      state.coins.push({...def, candles:[{o:def.price,h:def.price,l:def.price,c:def.price,vol:0.001}]});
+    } else if(!c.candles){
+      const hist = c.history && c.history.length ? c.history : [c.price];
+      c.candles = hist.map(p=>({o:p,h:p,l:p,c:p,vol:0.001}));
+      delete c.history;
+    } else {
+      c.candles.forEach(cd=>{ if(cd.vol===undefined) cd.vol = 0.001; });
+    }
+  });
+  wireModalStaticControls();
+  wireMarketDelegation();
+  wireChartOverlay();
+  renderAll(false);
+  startLoop();
+  if(!loaded){
+    toast('👋 Welcome to Orbit Terminal', `You start with ${fmt(STARTING_CASH)}. Good luck.`);
+  } else {
+    toast('💾 Progress Restored', `Welcome back — Day ${state.day}`);
+  }
+}
+init();
+
+window.addEventListener('resize', ()=>{ netWorthLineChart(); renderMarket(false); if(modalCoinId) renderModal(); });
+
+})();
+</script>
+</body>
+</html>
